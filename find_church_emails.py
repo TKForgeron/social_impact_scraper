@@ -8,7 +8,6 @@ from cachetools import cached, TTLCache
 from bs4 import BeautifulSoup
 import re
 import requests
-from typing import List, Tuple, Dict
 
 # %%
 
@@ -34,8 +33,8 @@ async def fetch(session: aiohttp.ClientSession, url: str) -> str:
 
 
 async def get_contact_page_urls(
-    session: aiohttp.ClientSession, main_url: str, contact_page_keywords: List[str]
-) -> List[str]:
+    session: aiohttp.ClientSession, main_url: str, contact_page_keywords: list[str]
+) -> list[str]:
     try:
         html_content = await fetch(session, main_url)
         soup = BeautifulSoup(html_content, "lxml")
@@ -53,7 +52,7 @@ async def get_contact_page_urls(
 
 async def extract_emails_from_page(
     session: aiohttp.ClientSession, url: str, email_regex: str
-) -> List[str]:
+) -> list[str]:
     try:
         html_content = await fetch(session, url)
         emails = re.findall(email_regex, html_content)
@@ -66,32 +65,42 @@ async def extract_emails_from_page(
 async def process_kerk_url(
     session: aiohttp.ClientSession,
     kerk_url: str,
-    contact_page_keywords: List[str],
+    contact_page_keywords: list[str],
     email_regex: str,
-) -> Tuple[str, List[str]]:
+) -> tuple[str, list[str]]:
     contact_pages = await get_contact_page_urls(
         session, kerk_url, contact_page_keywords
     )
     emails = [
         await extract_emails_from_page(session, page, email_regex)
-        for page in contact_pages.append(kerk_url)
+        for page in contact_pages
     ]
 
     return kerk_url, emails
 
 
+def is_url(url: str) -> bool:
+    if url:
+        url_regex = re.compile(r"https?://[^\s/$.?#].[^\s]*")
+        return bool(url_regex.match(url))
+    else:
+        return False
+
+
 async def main(
-    kerk_urls: List[str], contact_page_keywords: List[str], email_regex: str
-) -> Dict[str, List[str]]:
+    kerk_urls: list[str], contact_page_keywords: list[str], email_regex: str
+) -> dict[str, list[str]]:
     kerk_emails = {}
     async with aiohttp.ClientSession() as session:
         tasks = [
             process_kerk_url(session, kerk_url, contact_page_keywords, email_regex)
             for kerk_url in kerk_urls
         ]
+        # WITH PROGRESS BAR
         for f in tqdm(asyncio.as_completed(tasks), total=len(tasks)):
             kerk_url, emails = await f
             kerk_emails[kerk_url] = emails
+        # WITHOUT PROGRESS BAR (but likely faster)
         # results = await asyncio.gather(*tasks)
         # kerk_emails = {kerk_url: emails for kerk_url, emails in results}
     return kerk_emails
@@ -116,8 +125,9 @@ contact_page_keywords = [
     "donatie",
     "doneren",
     "doneer",
+    "mail",
 ]
-kerk_urls = [kerk["website"] for kerk in pkn_kerken[:10]]
+kerk_urls = [kerk["website"] for kerk in pkn_kerken if is_url(kerk["website"])]
 
 # %%
 
