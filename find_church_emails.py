@@ -146,4 +146,4 @@ rows = [
 df = pd.DataFrame(rows, columns=["url", "email"]).explode("email")
 df = df[df["email"].str.contains(EMAIL_REGEX, na=False)]
 df = df.drop_duplicates(subset=["email"])
-df.to_excel("kerk_emails_via_contactpagina.xlsx")
+df.to_excel("kerk_emails.xlsx")

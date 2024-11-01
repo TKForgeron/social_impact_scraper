@@ -1,5 +1,9 @@
 # Data files
 *.xlsx
+*.zip
+
+# Custom log files
+url_log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
